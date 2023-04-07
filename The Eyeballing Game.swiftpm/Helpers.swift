@@ -6,22 +6,39 @@ import AVFoundation
  * https://www.swiftyplace.com/
  * https://www.youtube.com/watch?v=HNAhPXOhZnY
 */
-class AudioPlayer: ObservableObject {
+class AudioPlayer: NSObject, ObservableObject, AVAudioPlayerDelegate {
     private var player = AVAudioPlayer()
+    private var notificationToken: NSObjectProtocol?
     
     @Published var isPlaying: Bool = false
     let volume: Float
+    var repeatSound: Bool
     
-    init(name: String, type: String, volume: Float = 1) {
+    init(name: String, type: String, volume: Float = 1, repeatSound: Bool = false) {
         self.volume = volume
+        self.repeatSound = repeatSound
+        
         if let url = Bundle.main.url(forResource: name, withExtension: type) {
             do {
                 player = try AVAudioPlayer(contentsOf: url)
                 player.prepareToPlay()
                 player.setVolume(volume, fadeDuration: 0.3)
+                
+                super.init()
+                player.delegate = self
             } catch {
-                print("Error getting audio")
+                fatalError("Error getting audio")
             }
+        } else {
+            fatalError("Unable to create URL for audio file")
+        }
+    }
+    
+    func audioPlayerDidFinishPlaying(_ player: AVAudioPlayer, successfully flag: Bool) {
+        if repeatSound  {
+            start()
+        } else {
+            isPlaying = false
         }
     }
     
@@ -37,7 +54,9 @@ class AudioPlayer: ObservableObject {
     }
     
     func pauseSmoothly(duration: Double = 0) {
+        isPlaying = false
         player.setVolume(0, fadeDuration: duration)
+        player.stop()
     }
     
     func toggle() {
@@ -48,6 +67,7 @@ class AudioPlayer: ObservableObject {
         }
     }
 }
+
 /*
  * IntSlider adapted from:
  * https://stackoverflow.com/questions/65736518/how-do-i-create-a-slider-in-swiftui-for-an-int-type-property
@@ -76,19 +96,19 @@ struct IntSlider: View {
     }
 }
 
+// Clamp a value between an interval
+// [lower...upper]
 func clamp<T: Comparable>(value: T, lower: T, upper: T) -> T {
     return min(max(value, lower), upper)
 }
 
+// Compare two integers with a threshold
 func compareValuesInt(value1: Int, value2: Int, threshold: Int) -> Bool {
     return value1 == value2 || abs(value1 - value2) <= threshold
 }
 
+// Compare two floating-point numbers with a threshold
 func compareValuesDouble(value1: Double, value2: Double, threshold: Double) -> Bool {
-    return value1 == value2 || abs(value1 - value2) <= threshold
-}
-
-func compareValuesDoubleHundred(value1: Double, value2: Double, threshold: Double) -> Bool {
     return value1 == value2 || abs(value1 - value2) <= threshold
 }
 
@@ -135,4 +155,8 @@ func angleBetweenPoints(center: CGPoint, point: CGPoint) -> Double {
 
 func radiansToDegrees(_ radians: Double) -> Double {
     return radians * 180 / Double.pi
+}
+
+func degreesToraddians(_ number: CGFloat) -> CGFloat {
+    return number * CGFloat.pi / 180
 }

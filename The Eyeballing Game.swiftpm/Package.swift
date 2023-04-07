@@ -8,17 +8,17 @@ import PackageDescription
 import AppleProductTypes
 
 let package = Package(
-    name: "Eyeballing Game",
+    name: "The Eyeballing Game",
     platforms: [
         .iOS("16.0")
     ],
     products: [
         .iOSApplication(
-            name: "Eyeballing Game",
+            name: "The Eyeballing Game",
             targets: ["AppModule"],
             displayVersion: "1.0",
             bundleVersion: "1",
-            appIcon: .placeholder(icon: .palette),
+            appIcon: .asset("AppIcon"),
             accentColor: .presetColor(.blue),
             supportedDeviceFamilies: [
                 .pad,
@@ -29,21 +29,12 @@ let package = Package(
                 .landscapeRight,
                 .landscapeLeft,
                 .portraitUpsideDown(.when(deviceFamilies: [.pad]))
-            ],
-            capabilities: [
-                .camera(purposeString: "This app requires access to the camera to calculate the light intensity.")
             ]
         )
-    ],
-    dependencies: [
-        .package(url: "https://github.com/simibac/ConfettiSwiftUI", "1.0.1"..<"2.0.0")
     ],
     targets: [
         .executableTarget(
             name: "AppModule",
-            dependencies: [
-                .product(name: "ConfettiSwiftUI", package: "ConfettiSwiftUI")
-            ],
             path: ".",
             resources: [
                 .process("Resources")

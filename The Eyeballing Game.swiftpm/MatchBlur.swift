@@ -17,16 +17,18 @@ struct MatchBlur: View {
     var body: some View {
         VStack(spacing: 24) {
             Text(madeGuess != 0 ? 
-                 madeGuess == 1 ? "Your guess was \(currentBlur)" :
+                 madeGuess == 1 ? "Your guess was \(currentBlur)px" :
                                   "Congratulations, you nailed it! 🎉" :
                 "Blur the rectangle with \(targetBlur)px"
             )
                 .font(.system(size: 24.0, weight: .bold, design: .rounded))
+                .multilineTextAlignment(.center)
                 .animation(.easeInOut, value: madeGuess)
             
-            RoundedRectangle(cornerRadius: 24, style: .continuous)
+            Rectangle()
+                .foregroundColor(.clear)
+                .background(AngularGradient(gradient: Gradient(colors: [.red, .yellow, .green, .blue, .purple, .red]), center: .center))
                 .frame(width: 300, height: 200)
-                .background(RadialGradient(gradient: Gradient(colors: [Color.red, Color.blue]), center: .center, startRadius: 5, endRadius: 500))
                 .blur(radius: CGFloat(currentBlur))
             
             IntSlider(
@@ -34,6 +36,12 @@ struct MatchBlur: View {
                 range: 4...25,
                 step: 1,
                 onSubmit: {
+                    if madeGuess == 0 {
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
+                            shouldSwitchView = true
+                        }
+                    }
+                    
                     if compareValuesInt(value1: currentBlur, value2: targetBlur, threshold: 2) && madeGuess == 0 {
                         score += 1
                         madeGuess = 2
@@ -41,14 +49,9 @@ struct MatchBlur: View {
                     } else {
                         madeGuess = 1
                     }
-                    
-                    DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
-                        shouldSwitchView = true
-                    }
                 }
             )
             .padding()
-            
         }
         .confettiCannon(counter: $score, num: 50)
     }

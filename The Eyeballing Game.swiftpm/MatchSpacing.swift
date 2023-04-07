@@ -24,6 +24,7 @@ struct MatchSpacing: View {
                     "Adjust the spacing to \(targetSpacing)px"
             )
             .font(.system(size: 24.0, weight: .bold, design: .rounded))
+            .multilineTextAlignment(.center)
             .animation(.easeInOut, value: madeGuess)
             
             Text("Tip: Drag the second rectangle.")
@@ -37,6 +38,7 @@ struct MatchSpacing: View {
                 
                 RoundedRectangle(cornerRadius: 24, style: .continuous)
                     .fill(isActive ? .green : .yellow)
+                    .animation(.easeInOut, value: isActive)
                     .frame(width: 100.0, height: 100.0)
                     .offset(CGSize(width: 0.0, height: CGFloat(currentSpacing)))
                     .gesture(
@@ -48,16 +50,18 @@ struct MatchSpacing: View {
                                 }
                             }
                             .onEnded { _ in 
+                                if madeGuess == 0 {
+                                    DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
+                                        shouldSwitchView = true
+                                    }
+                                }
+                                
                                 if compareValuesInt(value1: currentSpacing, value2: targetSpacing, threshold: 5) && madeGuess == 0 {
                                     score += 1
                                     madeGuess = 2
                                     self.player.toggle()
                                 } else {
                                     madeGuess = 1
-                                }
-                                
-                                DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
-                                    shouldSwitchView = true
                                 }
                             }
                     )

@@ -2,7 +2,9 @@ import SwiftUI
 
 struct MatchPenTool: View {
     @State private var targetControlPoint: CGPoint
-    @State private var currentControlPoint: CGPoint = CGPoint(x: 150, y: 150)
+    @State private var currentControlPoint: CGPoint = CGPoint(x: 100, y: 100)
+    @State private var startPoint: CGPoint
+    @State private var endPoint: CGPoint
     @State private var madeGuess = 0
     @Binding var score: Int
     @Binding var shouldSwitchView: Bool
@@ -16,7 +18,10 @@ struct MatchPenTool: View {
     init(score: Binding<Int>, shouldSwitchView: Binding<Bool>) {
         self._score = score
         self._shouldSwitchView = shouldSwitchView
-        _targetControlPoint = State(initialValue: CGPoint(x: Int.random(in: 100...200), y: Int.random(in: 100...200)))
+        _targetControlPoint = State(initialValue: CGPoint(x: CGFloat.random(in: 20...200), y: CGFloat.random(in: 20...200)))
+        
+        _startPoint = State(initialValue: CGPoint(x: CGFloat.random(in: 20...50), y: CGFloat.random(in: 10...40)))
+        _endPoint = State(initialValue: CGPoint(x: CGFloat.random(in: 90...180), y: CGFloat.random(in: 100...190)))
     }
     
     var body: some View {
@@ -27,6 +32,7 @@ struct MatchPenTool: View {
                     "Match the bezier-curve"
             )
             .font(.system(size: 24.0, weight: .bold, design: .rounded))
+            .multilineTextAlignment(.center)
             .animation(.easeInOut, value: madeGuess)
             
             Text("Tip: Drag the gray circle to adjust the curve.")
@@ -35,13 +41,17 @@ struct MatchPenTool: View {
         
             drawBezier(controlPoint: targetControlPoint)
                 .stroke(Color.red, lineWidth: 2)
-                .frame(height: 200)
+                .background(Color.gray.opacity(0.1))
+                .clipShape(Capsule())
+                .frame(width: 200, height: 200)
                 .padding()
             
             ZStack {
                 drawBezier(controlPoint: currentControlPoint)
                     .stroke(Color.blue, lineWidth: 2)
-                    .frame(height: 200)
+                    .background(Color.gray.opacity(0.1))
+                    .clipShape(Capsule())
+                    .frame(width: 200, height: 200)
                     .padding()
                 
                 Circle()
@@ -62,6 +72,12 @@ struct MatchPenTool: View {
             }
             
             Button(action: {
+                if madeGuess == 0 {
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
+                        shouldSwitchView = true
+                    }
+                }
+                
                 if comparePoints(point1: currentControlPoint, point2: targetControlPoint, threshold: 20) && madeGuess == 0 {
                     score += 1
                     madeGuess = 2
@@ -69,14 +85,11 @@ struct MatchPenTool: View {
                 } else {
                     madeGuess = 1
                 }
-                
-                DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
-                    shouldSwitchView = true
-                }
             }) {
                 Text("Submit")
                     .font(.system(size: 24.0, weight: .bold, design: .rounded))
             }
+            .frame(maxWidth: .infinity, alignment: .center)
             .padding()
         }
         .confettiCannon(counter: $score, num: 50)
@@ -84,9 +97,6 @@ struct MatchPenTool: View {
     
     func drawBezier(controlPoint: CGPoint) -> Path {
         Path { path in
-            let startPoint = CGPoint(x: 50, y: 150)
-            let endPoint = CGPoint(x: 250, y: 150)
-            
             path.move(to: startPoint)
             path.addQuadCurve(to: endPoint, control: controlPoint)
         }

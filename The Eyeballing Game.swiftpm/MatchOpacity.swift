@@ -7,147 +7,100 @@ struct MatchOpacity: View {
     @State private var madeGuess = 0
     @Binding var score: Int
     @Binding var shouldSwitchView: Bool
-    @ObservedObject private var cameraBrightnessDetector = CameraBrightnessDetector()
     @ObservedObject var player = AudioPlayer(name: "whistle", type: "mp3")
-
+    @ObservedObject private var volObserver = VolumeObserver()
+        
     init (score: Binding<Int>, shouldSwitchView: Binding<Bool>) {
         self._score = score
         self._shouldSwitchView = shouldSwitchView
-        _targetOpacity = State(initialValue: Double.random(in: 0.0...1.0))
+        // Multiply by 0.5 so that we end up with
+        // values that end with 0 or 5
+        _targetOpacity = State(initialValue: Double(Int.random(in: 0...10)) / 10.0 * 0.5)
     }
     
     var body: some View {
         VStack(spacing: 24) {
             Text(madeGuess != 0 ? 
-                 madeGuess == 1 ? "Your guess was \(Int(currentOpacity))%" :
+                 madeGuess == 1 ? "Your guess was \(Int(currentOpacity * 100))%" :
                     "Congratulations, you nailed it! 🎉" :
-                    "Change the opacity to \(Int(targetOpacity))%"
+                    "Tweak the opacity to \(Int(targetOpacity * 100))%"
             )
             .font(.system(size: 24.0, weight: .bold, design: .rounded))
+            .multilineTextAlignment(.center)
             .animation(.easeInOut, value: madeGuess)
             
+            Text("Tip: Adjust your volume.")
+                .font(.system(size: 14.0, weight: .regular, design: .rounded))
+                .multilineTextAlignment(.center)
+                .opacity(0.5)
+                        
             RoundedRectangle(cornerRadius: 24, style: .continuous)
                 .frame(width: 200, height: 100)
-                .foregroundColor(.blue.opacity(cameraBrightnessDetector.opacity))
-        
+                .foregroundColor(.blue.opacity(currentOpacity))
+            
             Button(action: {
-//                if compareValuesDouble(value1: lightIntensityManager.lightIntensity, value2: targetOpacity, threshold: 0.1) && madeGuess == false {
-//                    score += 1
-//                }
+                if madeGuess == 0 {
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
+                        shouldSwitchView = true
+                    }
+                }
                 
-                madeGuess = 1
-                DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
-                    shouldSwitchView = true
-                    cameraBrightnessDetector.stopSession()
+                if compareValuesDouble(value1: currentOpacity, value2: targetOpacity, threshold: 0.05) && madeGuess == 0 {
+                    // Use a threshold of 0.05
+                    // ex: 0.80 ~= 0.85
+                    score += 1
+                    madeGuess = 2
+                    self.player.toggle()
+                } else {
+                    madeGuess = 1
                 }
             }) {
                 Text("Submit")
+                    .font(.system(size: 24.0, weight: .bold, design: .rounded))
             }
             .padding()
+            
             
         }
         .confettiCannon(counter: $score, num: 50)
         .onAppear {
-            cameraBrightnessDetector.startSession()
-            DispatchQueue.main.asyncAfter(deadline: .now() + 1) {
-                currentOpacity = cameraBrightnessDetector.opacity
-            }
+            self.volObserver.subscribe()
+            currentOpacity = self.volObserver.volume
         }
         .onDisappear {
-            cameraBrightnessDetector.stopSession()
+            self.volObserver.unsubscribe()
         }
-        
+        .onChange(of: self.volObserver.volume, perform: { value in
+            currentOpacity = value
+        })
     }
 }
-class CameraBrightnessDetector: NSObject, ObservableObject, AVCaptureVideoDataOutputSampleBufferDelegate {
-    @Published var opacity: Double = -1
+
+final class VolumeObserver: ObservableObject {
+    @Published var volume: Double = Double(AVAudioSession.sharedInstance().outputVolume)
+    private let session = AVAudioSession.sharedInstance()
+    private var progressObserver: NSKeyValueObservation!
     
-    private var captureSession: AVCaptureSession?
-    private var videoDevice: AVCaptureDevice?
-    
-    override init() {
-        super.init()
-    }
-    
-    func stopSession() {
-        DispatchQueue.global(qos: .userInitiated).async {
-            self.captureSession?.stopRunning()
+    func subscribe() {
+        do {
+            try session.setCategory(.ambient, mode: .default, options: [])
+            try session.setActive(true, options: .notifyOthersOnDeactivation)
+        } catch {
+            print("Cannot activate session")
         }
-    }
-    
-    func startSession() {
-        DispatchQueue.global(qos: .userInitiated).async {
-            self.setupCamera()
-            self.captureSession?.startRunning()
-        }
-    }
-    
-    private func setupCamera() {
-        DispatchQueue.main.async {
-            self.captureSession = AVCaptureSession()
-            
-            guard let captureSession = self.captureSession,
-                  let device = AVCaptureDevice.default(.builtInWideAngleCamera, for: .video, position: .front),
-                  let input = try? AVCaptureDeviceInput(device: device) else { return }
-            
-            self.videoDevice = device
-            
-            if captureSession.canAddInput(input) {
-                captureSession.addInput(input)
-            }
-            
-            let videoOutput = AVCaptureVideoDataOutput()
-            videoOutput.setSampleBufferDelegate(self, queue: DispatchQueue(label: "videoQueue"))
-            if captureSession.canAddOutput(videoOutput) {
-                captureSession.addOutput(videoOutput)
+        
+        progressObserver = session.observe(\.outputVolume) { [self] (session, value) in
+            DispatchQueue.main.async {
+                self.volume = Double(session.outputVolume)
             }
         }
     }
     
-    func captureOutput(_ output: AVCaptureOutput, didOutput sampleBuffer: CMSampleBuffer, from connection: AVCaptureConnection) {
-        guard let device = self.videoDevice else { return }
-        
-        // Check if device is fully initialized
-        guard device.activeFormat.maxISO > 0 else { return }
-        
-        guard let pixelBuffer = CMSampleBufferGetImageBuffer(sampleBuffer) else { return }
-        let ciImage = CIImage(cvPixelBuffer: pixelBuffer)
-        
-        let context = CIContext()
-        let extent = ciImage.extent
-        
-        var averageBrightness: Double = 0
-        
-        // Calculate average brightness of each pixel in the image
-        for y in stride(from: 0, to: extent.height, by: 20) {
-            for x in stride(from: 0, to: extent.width, by: 20) {
-                let pixel = CGPoint(x: x, y: y)
-                
-                var pixelColor: CUnsignedChar = 0
-                
-                // Render the CIImage to a CGImage and extract the color of the pixel
-                if let cgImage = context.createCGImage(ciImage, from: extent),
-                   let data = cgImage.dataProvider?.data,
-                   let pointer = CFDataGetBytePtr(data) {
-                    let bytesPerPixel = 4
-                    let bytesPerRow = cgImage.bytesPerRow
-                    let pixelIndex = Int(pixel.y) * bytesPerRow + Int(pixel.x) * bytesPerPixel
-                    
-                    pixelColor = pointer[pixelIndex]
-                }
-                
-                let brightness = Double(pixelColor) / 255.0
-                
-                averageBrightness += brightness
-            }
-        }
-        
-        averageBrightness /= Double(extent.width * extent.height / 400)
-        let normalizedBrightness = 1.0 - averageBrightness
-        
-        DispatchQueue.main.async {
-            self.opacity = normalizedBrightness
-        }
+    func unsubscribe() {
+        self.progressObserver.invalidate()
     }
     
+    init() {
+        subscribe()
+    }
 }

@@ -30,6 +30,7 @@ struct MatchColor: View {
                     "Match the color"
             )
             .font(.system(size: 24.0, weight: .bold, design: .rounded))
+            .multilineTextAlignment(.center)
             .animation(.easeInOut, value: madeGuess)
             
             RoundedRectangle(cornerRadius: 24, style: .continuous)
@@ -39,6 +40,12 @@ struct MatchColor: View {
             ColorWheel(selection: $currentColor)
             
             Button(action: {
+                if madeGuess == 0 {
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
+                        shouldSwitchView = true
+                    }
+                }
+                
                 if compareColors(color1: currentColor, color2: targetColor, threshold: 0.2) && madeGuess == 0 {
                     score += 1
                     madeGuess = 2
@@ -46,12 +53,9 @@ struct MatchColor: View {
                 } else {
                     madeGuess = 1
                 }
-                
-                DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
-                    shouldSwitchView = true
-                }
             }) {
                 Text("Submit")
+                    .font(.system(size: 24.0, weight: .bold, design: .rounded))
             }
             .padding()
             
@@ -76,7 +80,7 @@ struct Wheel: View {
         ZStack {
             Circle()
                 .fill(AngularGradient(gradient: gradient, center: .center))
-                .blur(radius: 10.0)
+                .blur(radius: 5.0)
                 .overlay(
                     Circle()
                         .strokeBorder(Color.white.opacity(0.3),lineWidth: 5.0)
@@ -88,7 +92,6 @@ struct Wheel: View {
 }
 
 struct Knob: View {
-    
     @Binding var selection:Color
     @State private var isDragging: Bool = false
     
@@ -103,6 +106,10 @@ struct Knob: View {
     @GestureState private var fingerLocation: CGPoint? = nil
     @GestureState private var startLocation: CGPoint? = nil
     
+    /*
+     * Seamless drag gesture adapted from here:
+     * https://sarunw.com/posts/move-view-around-with-drag-gesture-in-swiftui/
+    */
     var simpleDrag: some Gesture {
         DragGesture()
             .onChanged { value in

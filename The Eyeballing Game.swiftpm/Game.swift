@@ -1,8 +1,8 @@
 import SwiftUI
-import ConfettiSwiftUI
+//import ConfettiSwiftUI
 
 let timeLimit = 75
-let games = 9
+let games = 10
 
 struct Game: View {
     @State private var score = 0
@@ -16,6 +16,7 @@ struct Game: View {
     func startGame() {
         score = 0
         remainingTime = timeLimit
+        // Change the order of the games each time
         gameOrder.shuffle()
 
         Timer.scheduledTimer(withTimeInterval: 1, repeats: true) { timer in
@@ -31,6 +32,7 @@ struct Game: View {
         if score > highScore {
             highScore = score
         }
+        // Reset the remainingTime for the next session
         remainingTime = timeLimit
         isPlaying = false
     }
@@ -40,20 +42,21 @@ struct Game: View {
             ForEach(0..<games, id: \.self) { index in
                 if index == currentViewIndex {
                     switch gameOrder[index] {
-                    case 0: MatchPenTool(score: $score, shouldSwitchView: $shouldSwitchView)
-                    case 8: MatchSize(score: $score, shouldSwitchView: $shouldSwitchView)
-                    case 7: MatchColor(score: $score, shouldSwitchView: $shouldSwitchView)
-                    case 6: MatchType(score: $score, shouldSwitchView: $shouldSwitchView)
-                    case 5: MatchBrightness(score: $score, shouldSwitchView: $shouldSwitchView)
-                    case 4: MatchRotation(score: $score, shouldSwitchView: $shouldSwitchView)
-                    case 2: MatchBlur(score: $score, shouldSwitchView: $shouldSwitchView) 
-                    case 1: MatchCornerRadius(score: $score, shouldSwitchView: $shouldSwitchView)
-                    case 3: MatchSpacing(score: $score, shouldSwitchView: $shouldSwitchView)
-                      default: Text("Finished!")
+                        case 0: MatchPenTool(score: $score, shouldSwitchView: $shouldSwitchView)
+                        case 1: MatchSize(score: $score, shouldSwitchView: $shouldSwitchView)
+                        case 2: MatchColor(score: $score, shouldSwitchView: $shouldSwitchView)
+                        case 3: MatchType(score: $score, shouldSwitchView: $shouldSwitchView)
+                        case 4: MatchBrightness(score: $score, shouldSwitchView: $shouldSwitchView)
+                        case 5: MatchRotation(score: $score, shouldSwitchView: $shouldSwitchView)
+                        case 6: MatchBlur(score: $score, shouldSwitchView: $shouldSwitchView) 
+                        case 7: MatchCornerRadius(score: $score, shouldSwitchView: $shouldSwitchView)
+                        case 8: MatchOpacity(score: $score, shouldSwitchView: $shouldSwitchView)
+                        case 9: MatchSpacing(score: $score, shouldSwitchView: $shouldSwitchView)
+                        default: Text("Finished!")
                     }
                 }
             }
-
+            
             Text("Score: \(score)")
                 .font(.system(size: 28.0, weight: .bold, design: .rounded))
                 .padding()
@@ -62,6 +65,7 @@ struct Game: View {
                 .foregroundColor(remainingTime > 15 ? Color.primary : Color.red)
                 .font(.system(size: 24.0, weight: .medium, design: .rounded))
         }
+        .padding()
         .onChange(of: shouldSwitchView, perform: { value in
             if shouldSwitchView {
                 shouldSwitchView = false

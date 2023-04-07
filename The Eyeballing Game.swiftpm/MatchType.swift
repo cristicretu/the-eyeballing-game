@@ -36,6 +36,7 @@ struct MatchType: View {
                     "Nudge the font width and weight"
             )
             .font(.system(size: 24.0, weight: .bold, design: .rounded))
+            .multilineTextAlignment(.center)
             .animation(.easeInOut, value: madeGuess)
             
             Text("“Stay foolish.”")
@@ -48,8 +49,14 @@ struct MatchType: View {
             RadialPad(x: $currentWidth, y: $currentWeight)
             
             Button(action: {
-                if compareValuesDouble(value1: currentWeight, value2: targetWeight, threshold: 0.1)
-                    && compareValuesDouble(value1: currentWidth, value2: targetWidth, threshold: 0.1)
+                if madeGuess == 0 {
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
+                        shouldSwitchView = true
+                    }
+                }
+                
+                if compareValuesDouble(value1: currentWeight, value2: targetWeight, threshold: 0.24)
+                    && compareValuesDouble(value1: currentWidth, value2: targetWidth, threshold: 0.24)
                     && madeGuess == 0 {
                     score += 1
                     madeGuess = 2
@@ -57,12 +64,9 @@ struct MatchType: View {
                 } else {
                     madeGuess = 1
                 }
-                
-                DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
-                    shouldSwitchView = true
-                }
             }) {
                 Text("Submit")
+                    .font(.system(size: 24.0, weight: .bold, design: .rounded))
             }
             .padding()
         }
@@ -80,20 +84,19 @@ struct RadialPad: View {
     
     @State private var location: CGPoint = CGPoint(x: 100, y: 100)
     @GestureState private var fingerLocation: CGPoint? = nil
-    @GestureState private var startLocation: CGPoint? = nil // 1
+    @GestureState private var startLocation: CGPoint? = nil
 
     var simpleDrag: some Gesture {
         DragGesture()
             .onChanged { value in
-                var newLocation = startLocation ?? location // 3
+                var newLocation = startLocation ?? location
                 newLocation.x += value.translation.width
                 newLocation.y += value.translation.height
                 self.location = constrainPointToCircle(center: CGPoint(x: outerCircleRadius, y: outerCircleRadius), radius: outerCircleRadius, point: newLocation)
                 x = (Double(self.location.x) / 100) - 1.0
                 y = (Double(self.location.y) / 100) - 1.0
-                
             }.updating($startLocation) { (value, startLocation, transaction) in
-                startLocation = startLocation ?? location // 2
+                startLocation = startLocation ?? location
             }
     }
     
@@ -132,6 +135,5 @@ struct RadialPad: View {
                 )
         }
         .frame(width: 200, height: 200)
-        
     }
 }

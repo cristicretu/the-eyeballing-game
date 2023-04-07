@@ -22,6 +22,7 @@ struct MatchCornerRadius: View {
                     "Tweak the corner radius to \(targetCornerRadius)px"
             )
             .font(.system(size: 24.0, weight: .bold, design: .rounded))
+            .multilineTextAlignment(.center)
             .animation(.easeInOut, value: madeGuess)
             
             RoundedRectangle(cornerRadius: CGFloat(currentCornerRadius), style: .continuous)
@@ -33,16 +34,18 @@ struct MatchCornerRadius: View {
                 range: 8...48,
                 step: 1,
                 onSubmit: {
+                    if madeGuess == 0 {
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
+                            shouldSwitchView = true
+                        }
+                    }
+                    
                     if compareValuesInt(value1: currentCornerRadius, value2: targetCornerRadius, threshold: 2) && madeGuess == 0 {
                         score += 1
                         madeGuess = 2
                         self.player.toggle()
                     } else {
                         madeGuess = 1
-                    }
-                    
-                    DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
-                        shouldSwitchView = true
                     }
                 }
             )

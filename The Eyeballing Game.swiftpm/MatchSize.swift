@@ -25,9 +25,10 @@ struct MatchSize: View {
                     "Match the size of the red rectangle"
             )
             .font(.system(size: 24.0, weight: .bold, design: .rounded))
+            .multilineTextAlignment(.center)
             .animation(.easeInOut, value: madeGuess)
             
-            Text("Tip: Tilt your device.")
+            Text("Tip: Tilt your device: left, right, up, and down.")
                 .font(.system(size: 14.0, weight: .regular, design: .rounded))
                 .opacity(0.5)
             
@@ -40,17 +41,19 @@ struct MatchSize: View {
                 .foregroundColor(.blue)   
             
             Button(action: {
+                motionManager.stopAccelerometerUpdates()
+                if madeGuess == 0 {
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
+                        shouldSwitchView = true
+                    }
+                }
+                
                 if compareSizes(size1: currentSize, size2: targetSize, threshold: 15) && madeGuess == 0 {
                     score += 1
                     madeGuess = 2
                     self.player.toggle()
                 } else {
                     madeGuess = 1
-                }
-                
-                motionManager.stopAccelerometerUpdates()
-                DispatchQueue.main.asyncAfter(deadline: .now() + 1) {
-                    shouldSwitchView = true
                 }
             }) {
                 Text("Submit")

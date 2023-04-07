@@ -17,15 +17,17 @@ struct MatchBrightness: View {
     var body: some View {
         VStack(spacing: 24) {
             Text(madeGuess != 0 ? 
-                 madeGuess == 1 ? "Your guess was \(currentBrightness * 100)%" :
+                 madeGuess == 1 ? "Your guess was \(Int(currentBrightness * 100))%" :
                     "Congratulations, you nailed it! 🎉" :
-                    "Tweak the brightness to \(Int(targetBrightness * 100))%"
+                    "Increase the brightness to \(Int(targetBrightness * 100))%"
             )
             .font(.system(size: 24.0, weight: .bold, design: .rounded))
+            .multilineTextAlignment(.center)
             .animation(.easeInOut, value: madeGuess)
             
-            Text("Tip: Change your device brightness.")
+            Text("Tip: Change your device's brightness.")
                 .font(.system(size: 14.0, weight: .regular, design: .rounded))
+                .multilineTextAlignment(.center)
                 .opacity(0.5)
             
             Image("ApplePark")
@@ -34,19 +36,24 @@ struct MatchBrightness: View {
                 .brightness(currentBrightness)
             
             Button(action: {
+                if madeGuess == 0 {
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
+                        shouldSwitchView = true
+                    }
+                }
+                
                 if compareValuesDouble(value1: currentBrightness, value2: targetBrightness, threshold: 0.05) && madeGuess == 0 {
+                    // Use a threshold of 0.05
+                    // ex: 0.80 ~= 0.85
                     score += 1
                     madeGuess = 2
                     self.player.toggle()
                 } else {
                     madeGuess = 1
                 }
-                
-                DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
-                    shouldSwitchView = true
-                }
             }) {
                 Text("Submit")
+                    .font(.system(size: 24.0, weight: .bold, design: .rounded))
             }
             .padding()
             
