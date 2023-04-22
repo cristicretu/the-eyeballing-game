@@ -19,3 +19,5 @@ This game features 10 exciting challenges that will put your skills to the test:
 - Match spacing, by dragging rectangles
 
 I encourage you to download and play the game, and even fork the project to make your own modifications! 🎮
+
+Inspired by [Rauno Freiberg](https://ui.gallery/)
